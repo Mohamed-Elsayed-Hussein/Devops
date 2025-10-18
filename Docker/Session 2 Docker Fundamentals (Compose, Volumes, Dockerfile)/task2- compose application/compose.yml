@@ -1,0 +1,44 @@
+services:
+
+  DB:
+    image : mysql:9.2
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypass
+    networks:
+      - app-net
+    volumes: 
+      - mysql-db-vol:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  Nginx-LB:
+    image: nginx:alpine
+    depends_on:
+      - DB
+    ports: 
+      - "8090:80"
+    networks: 
+     - app-net  
+     - front-end
+
+volumes:
+  mysql-db-vol:
+    
+
+networks:
+  app-net:
+    internal: true 
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.0.0/24
+
+  front-end:
+      
