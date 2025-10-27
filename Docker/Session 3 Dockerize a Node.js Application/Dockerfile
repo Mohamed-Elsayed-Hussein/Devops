@@ -20,5 +20,10 @@ COPY public ./public
 
 COPY package.json ./
 
+RUN adduser -DH NodeApp
+RUN chown -R NodeApp:NodeApp /app
+
+USER NodeApp
+
 EXPOSE 3000
 CMD ["bun", "run", "start"]
