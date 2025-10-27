@@ -25,17 +25,15 @@ pipeline {
 
         stage('Run Container') {
             steps {
-                echo "Running Docker container..."
+                echo 'Running Docker container...'
                 script {
-                    // Stop & remove old container if exists
+                    // Stop old container if it exists
+                    sh "docker rm -f ${IMAGE_NAME} || true"
+
+                    // Run the container
                     sh """
-                    if [ \$(docker ps -aq -f name=${CONTAINER_NAME}) ]; then
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                    fi
+                        docker run -d -p 3000:3000 --name ${IMAGE_NAME} ${IMAGE_NAME}:${BUILD_NUMBER}}
                     """
-                    // Run the new container
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 3000:3000 ${IMAGE_NAME}:latest"
                 }
             }
         }
