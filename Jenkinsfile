@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "nodejs-docker-app"
         CONTAINER_NAME = "nodejs-container"
+
     }
 
     stages {
@@ -32,7 +33,7 @@ pipeline {
 
                     // Run the container
                     sh """
-                        docker run -d -p 3000:3000 --name ${IMAGE_NAME} ${IMAGE_NAME}:${BUILD_NUMBER}}
+                        docker run -d -p 3000:3000 --name ${IMAGE_NAME} ${IMAGE_NAME}:${BUILD_NUMBER}
                     """
                 }
             }
