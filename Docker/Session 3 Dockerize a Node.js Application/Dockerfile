@@ -18,7 +18,7 @@ COPY src ./src
 COPY tests  ./tests
 COPY public ./public
 
-# COPY package.json ./
+COPY package.json ./
 
 # RUN adduser -DH NodeApp
 # RUN chown -R NodeApp:NodeApp /app
