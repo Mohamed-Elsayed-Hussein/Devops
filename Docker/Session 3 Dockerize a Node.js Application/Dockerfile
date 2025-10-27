@@ -23,7 +23,7 @@ COPY public ./public
 # RUN adduser -DH NodeApp
 # RUN chown -R NodeApp:NodeApp /app
 
-USER NodeApp
+# USER NodeApp
 
 EXPOSE 3000
 CMD ["bun", "run", "start"]
