@@ -10,7 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "Cloning source code from GitHub..."
-                git branch: 'nodejs-docker-task', url: 'https://github.com/Mohamed-Elsayed-Hussein/Devops.git'
+                git branch: 'main', url: 'https://github.com/Mohamed-Elsayed-Hussein/Devops.git'
             }
         }
 
