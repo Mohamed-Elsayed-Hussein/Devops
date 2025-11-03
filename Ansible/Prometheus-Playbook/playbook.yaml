@@ -1,0 +1,133 @@
+- name: this playbook for installing prometheus 
+  hosts: all
+  gather_facts: false
+  tasks: 
+    - name: creating  prometheus user with no home and no login shell
+      ansible.builtin.user:
+        name: prometheus
+        # group: prometheus    
+        uid: 1040
+        create_home: no
+        shell: /bin/false
+
+    - name: create Prometheus configuration directory
+      ansible.builtin.file:
+        path: /etc/prometheus
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        state: directory
+
+    - name: create tsdb directory for Prometheus  
+      ansible.builtin.file:
+        path: /var/lib/prometheus
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        state: directory
+
+    - name: Download the prometheus binary 
+      ansible.builtin.get_url:
+        url: https://github.com/prometheus/prometheus/releases/download/v3.7.3/prometheus-3.7.3.linux-amd64.tar.gz
+        dest: /home/ubuntu
+        mode: '0744'
+      register: prometheus_download
+
+    # - name: show downloaded file (debug)
+    #   ansible.builtin.debug:
+    #     msg: "Downloaded archive path= {{ prometheus_download }}"
+    #   tags: deubging
+
+
+    - name: save downloaded path and filename
+      ansible.builtin.set_fact:
+        prometheus_archive: "{{ prometheus_download.dest }}"
+        prometheus_filename: "{{ prometheus_download.dest | basename }}"
+
+    - name: show downloaded file (debug)
+      ansible.builtin.debug:
+        msg: "Downloaded archive path={{ prometheus_archive }}, filename={{ prometheus_filename }}"
+      tags: deubging
+
+    - name: Unarchive the prometheus binary that is already on the remote machine
+      ansible.builtin.unarchive:
+        src: "{{ prometheus_archive }}"
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: Find the extracted prometheus directory
+      ansible.builtin.find:
+        paths: /home/ubuntu
+        file_type: directory
+        patterns: "prometheus-*"
+      register: found_prometheus_dir
+
+    - name: Set fact for prometheus directory
+      ansible.builtin.set_fact:
+        prometheus_dir: "{{ found_prometheus_dir.files[0].path }}"
+
+    - name: Show unarchived path (debug)
+      ansible.builtin.debug:
+        msg: "Unarchived directory path = {{ prometheus_dir }}"
+      tags: debugging
+
+    - name: Copy the binary of prometheus to /usr/local/bin/
+      ansible.builtin.copy:
+        src: "{{ prometheus_dir }}/prometheus"
+        dest: /usr/local/bin/
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        remote_src: yes
+    - name: Copy the binary of promtool to /usr/local/bin/
+      ansible.builtin.copy:
+        src: "{{ prometheus_dir }}/promtool"
+        dest: /usr/local/bin/
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        remote_src: yes
+    - name: Copy the configuration of prometheus to /etc/prometheus
+      ansible.builtin.copy:
+        src: "{{ prometheus_dir }}/prometheus.yml"
+        dest: /etc/prometheus/
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        remote_src: yes
+
+    - name: Touch a file, using symbolic modes to set the permissions (equivalent to 0744)
+      ansible.builtin.file:
+        path: /etc/systemd/system/prometheus.service
+        state: touch
+
+
+    - name: Insert systemd unit service content 
+      ansible.builtin.blockinfile:
+        path: /etc/systemd/system/prometheus.service
+        block: |
+          [Unit]
+          Description=Prometheus
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=prometheus
+          Group=prometheus
+          Type=simple
+          ExecStart=/usr/local/bin/prometheus \
+              --config.file /etc/prometheus/prometheus.yml \
+              --storage.tsdb.path /var/lib/prometheus/
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      ansible.builtin.command: systemctl daemon-reload
+      become: true
+
+    - name: Start and Enable the prometheus service
+      ansible.builtin.service:
+        name: prometheus
+        state: started
+        enabled: yes
