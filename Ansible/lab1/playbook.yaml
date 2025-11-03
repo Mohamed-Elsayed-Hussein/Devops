@@ -1,0 +1,54 @@
+- name: play for demo
+  hosts: DB
+
+  vars:
+    - package_name: nginx
+    - tools: 
+      - vim
+      - curl
+      - git
+
+
+  tasks:
+    - name: Remove the main package defined in web_package
+      ansible.builtin.package:
+        name: "{{ package_name }}"
+        state: present
+
+    - name: Start service httpd, if not started
+      ansible.builtin.service:
+        name: "{{ package_name }}"
+        state: started
+
+
+    - name: Remove the list of packages 
+      ansible.builtin.package:
+        name: "{{item}}"
+        state: present 
+      loop: "{{ tools }}"
+    
+    - name: using coomand module to check the version 
+      ansible.builtin.command:
+        cmd: '"{{ package_name }}" -v'
+      register: output
+
+    - name: view the output of the previos task
+      ansible.builtin.debug:
+        var: output.stderr
+    
+    # - name: using command module to check the version 
+    #   ansible.builtin.command:
+    #     cmd: "{{ package_name }} -v"
+    #   register: output
+    #   changed_when: false
+
+    # - name: show full output (for debug)
+    #   ansible.builtin.debug:
+    #     msg: "{{ output.stderr | default(output.stdout, true) }}"
+
+    # - name: fail if 'version' not found, succeed otherwise
+    #   ansible.builtin.assert:
+    #     that:
+    #       - "'version' in (output.stderr | default(''))"
+    #     success_msg: "Found 'version' in {{ package_name }} output"
+    #     fail_msg: "Did not find 'version' in {{ package_name }} output"
