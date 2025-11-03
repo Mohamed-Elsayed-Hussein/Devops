@@ -1,0 +1,5 @@
+- name: custom apache webpage server
+  hosts: all
+  
+  roles: 
+    - apache

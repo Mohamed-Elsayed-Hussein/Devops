@@ -1,0 +1,31 @@
+---
+# tasks file for roles/apache
+- name: install apache server
+  ansible.builtin.package:
+    name: "{{ apache_package }}"
+    state: present
+
+- name: copy the index to the workers
+  ansible.builtin.template:
+      src: index.html.j2
+      dest: /var/www/html/index.html
+      owner: root
+      group: "{{ root_group }}"
+      mode: '0644'
+  notify: restart the service of apache
+
+
+- name: Install python3-firewall on RedHat
+  ansible.builtin.yum:
+    name: python3-firewall
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: permit traffic in default zone for https service
+  ansible.posix.firewalld:
+    service: http
+    permanent: true
+    immediate: true
+    state: enabled
+  when: ansible_os_family == 'RedHat'
+  notify: Reload firewalld
