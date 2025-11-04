@@ -1,0 +1,25 @@
+FROM gradle:7.6.6-jdk17-ubi-minimal AS builder
+
+WORKDIR /app 
+COPY ./spring-petclinic/build.gradle ./spring-petclinic/settings.gradle .
+
+RUN gradle build -x test  --no-daemon || true
+# RUN gradle gradle dependencies --no-daemon 
+
+COPY ./spring-petclinic ./
+RUN gradle build -x test -x cyclonedxBom --no-daemon
+
+
+
+
+FROM eclipse-temurin:17-jre
+
+LABEL Author="Mohamed Elsayed" 
+
+WORKDIR /app
+
+COPY --from=builder /app/build/libs/spring-petclinic-3.5.0.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

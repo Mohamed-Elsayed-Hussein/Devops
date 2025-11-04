@@ -1,0 +1,25 @@
+# Ignore build tools
+gradle*
+mvnw*
+.mvn
+.gradle
+
+# Ignore build output
+target/
+build/
+
+# Ignore VCS
+.git
+.gitignore
+
+# Ignore docs and configs 
+README.md
+LICENSE.txt
+settings.gradle
+build.gradle
+
+# not needed in image
+docker-compose.yml
+k8s/
+.devcontainer
+.github

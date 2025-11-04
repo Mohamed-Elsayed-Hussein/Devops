@@ -1,0 +1,28 @@
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+
+# Copy pom.xml first
+COPY spring-petclinic/pom.xml .
+
+# Download dependencies
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY spring-petclinic/ ./
+
+# Build the jar
+RUN mvn package -DskipTests
+
+# Stage 2: Runtime with Eclipse Temurin JRE
+FROM eclipse-temurin:17-jre
+
+LABEL Author="Mohamed Elsayed" 
+
+WORKDIR /app
+
+COPY --from=builder /app/target/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
