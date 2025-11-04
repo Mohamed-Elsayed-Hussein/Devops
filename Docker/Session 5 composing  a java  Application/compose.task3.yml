@@ -1,0 +1,64 @@
+services:
+
+  DB:
+    image : mysql:9.2
+    container_name: mysql-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    networks:
+      - petclinic-db-net
+    volumes: 
+      - petclinic-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: petclinic-app:v1.2
+    restart: unless-stopped
+    depends_on:
+      - DB
+    environment: 
+      - MYSQL_URL=jdbc:mysql://mysql-db:3306/petclinic
+      - SPRING_PROFILES_ACTIVE=mysql
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASS=${MYSQL_PASS}
+    networks: 
+     - petclinic-db-net
+     - network-app
+    
+
+  load-balancer:
+    image: nginx:alpine
+    container_name: LB
+    depends_on: 
+      - frontend
+    networks: 
+      - network-app
+    ports: 
+      - 8080:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+
+volumes:
+  petclinic-db:
+    external: true
+
+networks:
+  petclinic-db-net:
+    name: petclinic-db-net  
+    external: true
+
+
+  network-app:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.3.0/24
