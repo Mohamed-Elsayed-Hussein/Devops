@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: DaemonSet  
+metadata:
+  labels:
+    app: damonset
+  name: damonset
+spec:
+  selector:
+    matchLabels:
+      app: damonset
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: damonset
+    spec:
+      containers:
+      - image: quay.io/nginx/nginx-unprivileged
+        name: nginx-unprivileged
