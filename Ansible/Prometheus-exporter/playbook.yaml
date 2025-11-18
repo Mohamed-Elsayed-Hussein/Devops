@@ -1,0 +1,91 @@
+- name: this playbook for installing node_exporter
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: creating node_exporter user with no home and no login shell
+      ansible.builtin.user:
+        name: node_exporter
+        uid: 1050
+        create_home: no
+        shell: /bin/false
+
+    - name: Download the node_exporter binary
+      ansible.builtin.get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz
+        dest: /home/ubuntu
+        mode: '0744'
+      register: node_exporter_download
+
+    - name: save downloaded path and filename
+      ansible.builtin.set_fact:
+        node_exporter_archive: "{{ node_exporter_download.dest }}"
+        node_exporter_filename: "{{ node_exporter_download.dest | basename }}"
+
+    - name: Unarchive the node_exporter binary on the remote machine
+      ansible.builtin.unarchive:
+        src: "{{ node_exporter_archive }}"
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: Find the extracted node_exporter directory
+      ansible.builtin.find:
+        paths: /home/ubuntu
+        file_type: directory
+        patterns: "node_exporter-*"
+      register: found_node_exporter_dir
+
+    - name: Set fact for node_exporter directory
+      ansible.builtin.set_fact:
+        node_exporter_dir: "{{ found_node_exporter_dir.files[0].path }}"
+
+    - name: Copy the node_exporter binary to /usr/local/bin/
+      ansible.builtin.copy:
+        src: "{{ node_exporter_dir }}/node_exporter"
+        dest: /usr/local/bin/
+        owner: node_exporter
+        group: node_exporter
+        mode: '0744'
+        remote_src: yes
+
+    # - name: Apply SELinux label for node_exporter binary
+    #   ansible.builtin.command: >
+    #     semanage fcontext -a -t bin_t '/usr/local/bin/node_exporter'
+    #   become: true
+
+    # - name: Restore SELinux context for node_exporter
+    #   ansible.builtin.command: restorecon -v /usr/local/bin/node_exporter
+    #   become: true
+
+    - name: Touch node_exporter systemd service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/node_exporter.service
+        state: touch
+
+    - name: Insert systemd unit service content for node_exporter
+      ansible.builtin.blockinfile:
+        path: /etc/systemd/system/node_exporter.service
+        block: |
+          [Unit]
+          Description=Node Exporter
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=node_exporter
+          Group=node_exporter
+          Type=simple
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      ansible.builtin.command: systemctl daemon-reload
+      become: true
+
+    - name: Start and Enable the node_exporter service
+      ansible.builtin.service:
+        name: node_exporter
+        state: started
+        enabled: yes
